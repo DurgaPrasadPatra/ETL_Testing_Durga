@@ -1,0 +1,122 @@
+CREATE TABLE parents (
+    pid INT PRIMARY KEY,
+    father_name VARCHAR(50),
+    mother_name VARCHAR(50),
+    location VARCHAR(100),
+    profession VARCHAR(50)
+);
+INSERT INTO parents (pid, father_name, mother_name, location, profession) VALUES
+(101, 'Ramesh Sharma', 'Sunita Sharma', 'Mumbai', 'Engineer'),
+(102, 'Mohan Kohli', 'Anjali Kohli', 'Delhi', 'Doctor'),
+(103, 'Vijay Dhoni', 'Savita Dhoni', 'Ranchi', 'Teacher'),
+(104, 'Prakash Raina', 'Kamala Raina', 'Gujarat', 'Businessman'),
+(105, 'Manoj Pandya', 'Sheela Pandya', 'Surat', 'Banker'),
+(106, 'Suresh Bumrah', 'Rekha Bumrah', 'Ahmedabad', 'Lawyer');
+
+CREATE TABLE students (
+    student_id INT PRIMARY KEY,
+    first_name VARCHAR(50),
+    last_name VARCHAR(50),
+    standard_class VARCHAR(20),
+    sql_score INT,
+    python_score INT,
+    etl_score INT,
+    monitor_id INT,
+    pid INT,
+    FOREIGN KEY (pid) REFERENCES parents(pid)
+);
+INSERT INTO students (student_id, first_name, last_name, standard_class, sql_score, python_score, etl_score, monitor_id, pid) VALUES
+(1, 'Rohit', 'Sharma', '10A', 88, 90, 85, 1, 101),
+(2, 'Virat', 'Kohli', '10A', 92, 89, 91, 1, 102),
+(3, 'MS', 'Dhoni', '10B', 85, 84, 82, 3, 103),
+(4, 'Suresh', 'Raina', '10B', 80, 78, 79, 3, 104),
+(5, 'Hardik', 'Pandya', '11A', 89, 93, 87, 5, 105),
+(6, 'Jasprit', 'Bumrah', '11A', 90, 88, 92, 5, 106);
+
+
+
+
+
+--Get the average SQL score for each class.
+select * from students;
+select 
+standard_class,
+avg(sql_score) AS average_score
+from students
+group by standard_class;
+
+--Count the number of students in each class.
+select * from students;
+
+select 
+standard_class,
+count(student_id) as Total_students
+from students
+group by standard_class;
+--List students and their parents' locations.
+
+select * from students;
+select * from parents;
+select s.first_name, s.last_name, p.location AS parents_location
+from students  s
+join parents p
+on p.pid=s.pid;
+
+--Retrieve students whose parents are doctors.
+select * from students;
+select * from parents;
+
+select s.first_name, s.last_name ,p.profession AS parents_profession
+from students s
+join parents p 
+on p.pid=s.pid
+where p.profession='Doctor';
+--Find students with ETL scores greater than 85 and Python scores greater than 85.
+select first_name, last_name , ETL_score,python_score
+from students
+where ETL_score > 85 and python_score>85;
+--Show students whose total score across subjects is greater than 260.
+select * from students;
+--main query
+select student_id ,
+		CONCAT(first_name,' ',last_name) AS full_name ,
+		Sum_score
+	                             
+--find total score across subjects is greater than 260
+       from	   (
+	  			select
+				student_id, first_name , last_name,
+				sql_score, python_score, etl_Score ,
+	            (sql_score+ python_score+ etl_Score ) AS Sum_score
+				from students
+				where (sql_score+ python_score+ etl_Score ) >260
+			  ) t ;
+
+				
+
+--Get the class with the highest average Python score.
+
+SELECT TOP 1 standard_class
+FROM (
+    SELECT standard_class, AVG(python_score) AS avg_python_score
+    FROM students
+    GROUP BY standard_class
+) AS class_avg
+ORDER BY avg_python_score DESC;
+
+--Get the class with the highest average Python score.
+SELECT TOP 1 
+    standard_class 
+FROM students
+GROUP BY standard_class
+ORDER BY AVG(python_score) DESC;
+
+--List students whose parent lives in Delhi or Mumbai.
+select * from students;
+select * from parents;
+
+select s.first_name, s.last_name, p.location
+from students s
+join parents p
+on p.pid=s.pid
+where p.location= 'Delhi' or p.location='Mumbai';
