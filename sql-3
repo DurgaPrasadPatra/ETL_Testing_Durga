@@ -1,0 +1,163 @@
+--student-parent example
+CREATE TABLE parents (
+    pid INT PRIMARY KEY,
+    father_name VARCHAR(50),
+    mother_name VARCHAR(50),
+    location VARCHAR(100),
+    profession VARCHAR(50)
+);
+INSERT INTO parents (pid, father_name, mother_name, location, profession) VALUES
+(101, 'Ramesh Sharma', 'Sunita Sharma', 'Mumbai', 'Engineer'),
+(102, 'Mohan Kohli', 'Anjali Kohli', 'Delhi', 'Doctor'),
+(103, 'Vijay Dhoni', 'Savita Dhoni', 'Ranchi', 'Teacher'),
+(104, 'Prakash Raina', 'Kamala Raina', 'Gujarat', 'Businessman'),
+(105, 'Manoj Pandya', 'Sheela Pandya', 'Surat', 'Banker'),
+(106, 'Suresh Bumrah', 'Rekha Bumrah', 'Ahmedabad', 'Lawyer');
+
+CREATE TABLE students (
+    student_id INT PRIMARY KEY,
+    first_name VARCHAR(50),
+    last_name VARCHAR(50),
+    standard_class VARCHAR(20),
+    sql_score INT,
+    python_score INT,
+    etl_score INT,
+    monitor_id INT,
+    pid INT,
+    FOREIGN KEY (pid) REFERENCES parents(pid)
+);
+INSERT INTO students (student_id, first_name, last_name, standard_class, sql_score, python_score, etl_score, monitor_id, pid) VALUES
+(1, 'Rohit', 'Sharma', '10A', 88, 90, 85, 1, 101),
+(2, 'Virat', 'Kohli', '10A', 92, 89, 91, 1, 102),
+(3, 'MS', 'Dhoni', '10B', 85, 84, 82, 3, 103),
+(4, 'Suresh', 'Raina', '10B', 80, 78, 79, 3, 104),
+(5, 'Hardik', 'Pandya', '11A', 89, 93, 87, 5, 105),
+(6, 'Jasprit', 'Bumrah', '11A', 90, 88, 92, 5, 106);
+
+
+
+--Find students who scored above the average SQL score.
+--main query
+select
+*
+From
+--subquery
+		(select 
+		student_id,First_name,Sql_score,
+		AVG(Sql_score) OVER ()Avg_sql_Score  --to get avg sql score in each row
+		from students) t
+where sql_score > Avg_sql_Score
+
+  --   (select student_id,first_name,sql_Score ,avg(sql_score)
+	--  from students
+	--  group by student_id
+	 -- having sql_score > (avg(sql_score))
+	 -- ) AS t
+
+SELECT student_id, first_name, sql_score
+FROM students
+WHERE sql_score > 
+(    SELECT AVG(sql_score) FROM students);
+
+--Get student names and their average score across SQL, Python, and ETL.ALso Rank them
+select 
+student_id,
+first_name,
+ROUND( ((sql_score+python_score+etl_score)/3.0),2) AS AVg_Score,
+RANK() OVER (ORDER BY (ROUND( ((sql_score+python_score+etl_score)/3.0),2)) DESC) AS rank_position
+from students;
+--List parents who have more than one child in the student table.
+select * from parents;
+--Retrieve all students even if their parent details are missing.
+select * 
+from students s
+left join parents p
+on s.pid=p.pid;
+--where p.pid IS NULL;# to identify which students have no parent records, use filter
+
+--Show the number of students per profession of parents.
+select
+(p.profession),
+count(s.student_id) AS num_students
+from students s
+join parents p
+on s.pid=p.pid
+group by p.profession;
+
+--Display the top 3 students based on average scores.
+
+select TOP 3
+first_name,
+ROUND( ((sql_score+python_score+etl_score)/3.0),2) AS AVg_Score
+from students
+--Find students whose parent profession is either ‘Engineer’ or ‘Teacher’.
+select s.first_name,
+	p.profession
+from students s
+join parents p
+on s.pid=p.pid
+where (p.profession ='Engineer' or p.profession='Teacher')
+      
+--List all classes along with the number of students and their average SQL scores.
+select 
+standard_class,
+count(*) AS num_students,
+Avg(sql_Score) OVER (Partition by standard_class) Class_Avg --error: as window gives out put for every row 
+from students
+group by standard_class;  --Column 'students.sql_score' is invalid in the select list because
+						 --it is not contained in either an aggregate function or the GROUP BY clause.
+
+select 
+standard_class,
+count(*) AS num_students,
+Avg(sql_Score) Class_Avg                   -- Error : OVER (Partition by standard_class) Class_Avg
+from students
+group by standard_class;
+--Identify students whose parent location is the same as another student’s parent location (excluding self).
+INSERT INTO parents (pid, father_name, mother_name, location, profession) VALUES
+(107, 'Beneke', 'Rebbeca', 'Mumbai', 'Engineer');
+INSERT INTO students (student_id, first_name, last_name, standard_class, sql_score, python_score, etl_score, monitor_id, pid) VALUES
+(7, 'Ben', 'Stoke', '10B', 89, 79, 86, 1, 107);
+
+select*from students;
+select * from parents;
+
+select s.student_id ,s.first_name,
+	   p.location
+from students s
+join parents p
+on s.pid=p.pid
+WHERE p.location IN (
+    SELECT p2.location
+    FROM students s2
+    JOIN parents p2 ON s2.pid = p2.pid
+    GROUP BY p2.location
+    HAVING COUNT(*) > 1
+);
+--Another Approach
+SELECT 
+    s.student_id, 
+    s.first_name, 
+    p.location
+FROM students s
+JOIN parents p ON s.pid = p.pid
+JOIN (
+    SELECT p2.location
+    FROM students s2
+    JOIN parents p2 ON s2.pid = p2.pid
+    GROUP BY p2.location
+    HAVING COUNT(*) > 1
+) AS multiple_loc ON p.location = multiple_loc.location;
+
+--Show the students who are also monitors of their class (monitor_id = student_id).
+select student_id,first_name , standard_class,
+		CASE 
+		when student_id=monitor_id THEN 'Oh!YES'
+		ELSE 'NO'
+		END AS is_monitor
+from students
+
+---ANother approach
+select student_id,first_name , standard_class
+FROM students
+where monitor_id=student_id;
